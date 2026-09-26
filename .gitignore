@@ -162,4 +162,6 @@ venv.bak/
 .mypy_cache/
 
 # mlflow local runs
+# mlflow local runs
 mlruns/*
+mlflow/*
