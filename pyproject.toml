@@ -32,6 +32,7 @@ dependencies = [
   "seaborn>=0.13,<0.14",
   "setuptools<70",
   "fg-data-profiling>=4.19.1",
+  "kedro-datasets>=9.6.0",
 ]
 
 [project.scripts]
@@ -101,3 +102,6 @@ select = [
     "T201", # Print Statement
 ]
 ignore = ["E501"]  # Ruff format takes care of line-too-long
+
+[tool.kedro_telemetry]
+project_id = "fc913558d59a4b99a02e5ba9b428bd69"

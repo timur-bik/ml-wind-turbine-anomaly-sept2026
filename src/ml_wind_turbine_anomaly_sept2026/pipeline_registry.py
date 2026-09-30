@@ -1,9 +1,5 @@
-"""Project pipelines."""
-from __future__ import annotations
-
-from kedro.framework.project import find_pipelines
 from kedro.pipeline import Pipeline
-
+from ml_wind_turbine_anomaly_sept2026.pipelines.feature_eng.pipeline import create_pipeline
 
 def register_pipelines() -> dict[str, Pipeline]:
     """Register the project's pipelines.
@@ -11,6 +7,9 @@ def register_pipelines() -> dict[str, Pipeline]:
     Returns:
         A mapping from pipeline names to ``Pipeline`` objects.
     """
-    pipelines = find_pipelines(raise_errors=True)
-    pipelines["__default__"] = sum(pipelines.values())
-    return pipelines
+    feature_eng_pipeline = create_pipeline()
+
+    return {
+        "__default__": feature_eng_pipeline,
+        "feature_eng": feature_eng_pipeline
+    }
