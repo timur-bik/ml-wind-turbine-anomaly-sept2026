@@ -109,3 +109,18 @@ training_pipeline:
             range: [20, 30]
             log: False
             type: int
+
+mlflow:
+  prod_experiment_name: prod_model_training
+  registered_model_name: wind_power_predictor
+  model_aliases:
+    candidate: challenger
+    production: champion
+
+
+inference_pipeline:
+  batch_size: 100
+  predictions_column_name: [predict_power]
+  anomaly_error_type: mape
+  rolling_window: 5
+  anomaly_threshold: 8.5 # in percentage

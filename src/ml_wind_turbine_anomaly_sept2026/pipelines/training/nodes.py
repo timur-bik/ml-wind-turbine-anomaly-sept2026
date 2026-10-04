@@ -1,11 +1,18 @@
 import pandas as pd
 from typing import Any
 import optuna
+import mlflow
+from datetime import datetime
+from pathlib import Path
+from mlflow.models.signature import infer_signature
+import joblib
+from mlflow.tracking import MlflowClient
 from sklearn.preprocessing import StandardScaler
 from catboost import CatBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as RF
 from ml_wind_turbine_anomaly_sept2026.common.metrics import compute_metrics
-from ml_wind_turbine_anomaly_sept2026.pipelines.training.utils import eval_model, objective
+from ml_wind_turbine_anomaly_sept2026.common.mlflow_utils import load_model_by_alias
+from ml_wind_turbine_anomaly_sept2026.pipelines.training.utils import eval_model, objective, MLModelWrapper
 
 
 def train_test_split(
@@ -161,3 +168,186 @@ def fit_best_model(
             "test_mape": errors["mape"],
         },
     }
+
+
+def log_to_mlflow(
+    hyperparams_tuning_results: dict[str, Any],
+    train_results: dict[str, Any],
+    train_pipeline_params: dict[str, Any],
+    mlflow_params: dict[str, Any],
+) -> str:
+    """
+    Log model, metrics, and parameters to MLflow.
+
+    Parameters
+    ----------
+    hyperparams_tuning_results : dict[str, Any]
+        Contains 'best_params' and 'cv_metrics' (cv_mae, cv_rmse, cv_mape).
+    train_results : dict[str, Any]
+        Contains 'model', 'x_scaler', 'input_example', and 'test_metrics'.
+    train_pipeline_params : dict[str, Any]
+        Contains 'optuna_search' with 'model' key.
+    mlflow_params : dict[str, Any]
+        Contains 'prod_experiment_name'.
+
+    Returns
+    -------
+    str
+        Model URI of the logged PyFunc model.
+    """
+    # Set MLflow tracking URI and experiment
+    mlflow.set_experiment(mlflow_params["prod_experiment_name"])
+
+    # Get model name and determine run name
+    model_name = train_pipeline_params["optuna_search"]["model"]
+    # Default run name with timestamp for uniqueness
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_name = f"{model_name}_{timestamp}_candidate"
+
+    # Create temporary directory for artifacts
+    temp_models_dir = Path("data/06_models")
+    temp_models_dir.mkdir(parents=True, exist_ok=True)
+
+    with mlflow.start_run(run_name=run_name):
+        # Log metrics and parameters
+        mlflow.log_metrics(hyperparams_tuning_results["cv_metrics"])
+        mlflow.log_metrics(train_results["test_metrics"])
+        mlflow.log_params(hyperparams_tuning_results["best_params"])
+
+        # Create signature from input example
+        input_example = train_results["input_example"]
+        x_scaler = train_results["x_scaler"]
+        best_model = train_results["model"]
+        y_example = best_model.predict(x_scaler.transform(input_example))
+        signature = infer_signature(input_example, y_example)
+
+        # Save model and scaler artifacts depending on the model type
+        if model_name.lower() == "catboost":
+            model_path = temp_models_dir / "catboost_model.cbm"
+            best_model.save_model(str(model_path))
+        elif model_name.lower() in ["rf", "random_forest"]:
+            model_path = temp_models_dir / "random_forest_model.pkl"
+            joblib.dump(best_model, model_path)
+        else:
+            raise ValueError(f"Unknown model_name: {model_name}")
+
+        scaler_path = temp_models_dir / "x_scaler.joblib"
+        joblib.dump(x_scaler, scaler_path)
+
+        # Prepare artifacts dictionary for MLModelWrapper
+        artifacts = {
+            "model": str(model_path),
+            "scaler": str(scaler_path),
+        }
+
+        # Log PyFunc model using MLModelWrapper
+        model_info = mlflow.pyfunc.log_model(
+            name="model",
+            python_model=MLModelWrapper(model_name=model_name),
+            artifacts=artifacts,
+            signature=signature,
+            input_example=input_example,
+            tags={
+                "best_model": "true",
+                "model_type": model_name,
+                "run_name": run_name,
+            },
+        )
+    # 8) Return model URI to later register the model
+    return model_info.model_uri
+
+
+def register_model(model_uri: str, mlflow_params: dict[str, Any]) -> str:
+    """
+    Register a model in MLflow and add candidate alias.
+
+    Parameters
+    ----------
+    model_uri : str
+        The MLflow model URI to register.
+    mlflow_params : dict[str, Any]
+        MLflow config containing 'registered_model_name' and 'model_aliases'.
+
+    Returns
+    -------
+    str
+        The registered model version.
+    """
+    client = MlflowClient()
+    registered_model_name = mlflow_params["registered_model_name"]
+
+    # 1) Register model
+    model_info = mlflow.register_model(
+        model_uri=model_uri,
+        name=registered_model_name,
+    )
+
+    version = str(model_info.version)
+
+    # 2) Add alias
+    client.set_registered_model_alias(
+        name=registered_model_name, 
+        alias=mlflow_params["model_aliases"]["candidate"], 
+        version=version
+    )
+    return version
+
+
+def validate_challenger(
+    x_test: pd.DataFrame,
+    y_test: pd.Series,
+    training_results: dict[str, Any],
+    mlflow_params: dict[str, Any],
+    model_version:str
+) -> None:
+    """
+    Validates candidate model against production and promote if better (lower MAPE).
+
+    Loads champion model from registry using load_model_by_alias, predicts on current
+    test set, computes MAPE, and compares with challenger's MAPE.
+    Promotes challenger to production if better.
+
+    Parameters
+    ----------
+    x_test : pd.DataFrame
+        Test features (same split as used for challenger).
+    y_test : pd.Series
+        Test target (same split as used for challenger).
+    training_results : dict[str, Any]
+        From fit_best_model, contains 'test_metrics' with challenger's test_mape.
+    mlflow_params : dict[str, Any]
+        MLflow config containing 'registered_model_name' and 'model_aliases'.
+
+    Returns
+    -------
+    None
+        Modifies model aliases in MLflow.
+    """
+    client = MlflowClient()
+    registered_model_name = mlflow_params["registered_model_name"]
+    candidate_alias = mlflow_params["model_aliases"]["candidate"]
+    production_alias = mlflow_params["model_aliases"]["production"]
+
+    # Load champion model and predict on current test set, compute MAPE
+    try:
+        champion_model = load_model_by_alias(registered_model_name, alias=production_alias)
+        y_pred = champion_model.predict(x_test)
+        champion_mape = compute_metrics(y_test, y_pred)["mape"]
+    except Exception:
+        champion_mape = float("inf")  # No champion exists, promote challenger
+
+    challenger_mape = training_results["test_metrics"]["test_mape"]
+
+    if challenger_mape < champion_mape:
+        client.delete_registered_model_alias(registered_model_name, production_alias)
+        client.set_registered_model_alias(
+            name=registered_model_name,
+            alias=production_alias,
+            version=client.get_model_version_by_alias(
+                registered_model_name, candidate_alias
+            ).version,
+        )
+        client.delete_registered_model_alias(
+            registered_model_name, candidate_alias
+        )
+    return None
