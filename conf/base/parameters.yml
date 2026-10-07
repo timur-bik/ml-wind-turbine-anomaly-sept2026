@@ -124,3 +124,73 @@ inference_pipeline:
   anomaly_error_type: mape
   rolling_window: 5
   anomaly_threshold: 8.5 # in percentage
+
+
+data_manager:
+  history_data_folder: data/01_raw
+  history_data_filename: df_train_test.parquet
+  inference_data_folder: data/01_raw
+  inference_data_filename: df_prod.parquet
+  sqlite_db_path: data/sqlite/app.db
+  raw_data_table_name: raw_data
+  predictions_table_name: predictions
+  errors_table_name: errors
+  anomalies_table_name: anomalies
+
+  raw_data_table_schema:
+    - name: Timestamps
+      type: TEXT
+      primary_key: true
+    - name: WindSpeed
+      type: REAL
+    - name: WindDirAbs
+      type: REAL
+    - name: WindDirRel
+      type: REAL
+    - name: Power
+      type: REAL
+    - name: Pitch
+      type: REAL
+    - name: GenRPM
+      type: REAL
+    - name: RotorRPM
+      type: REAL
+    - name: EnvirTemp
+      type: REAL
+    - name: NacelTemp
+      type: REAL
+    - name: GearOilTemp
+      type: REAL
+    - name: GearBearTemp
+      type: REAL
+    - name: GenPh1Temp
+      type: REAL
+    - name: GenBearTemp
+      type: REAL
+  predictions_table_schema:
+    - name: Timestamps
+      type: TEXT
+      primary_key: true
+      not_null: true
+    - name: predict_power
+      type: REAL
+      not_null: true
+  errors_table_schema:
+    - name: Timestamps
+      type: TEXT
+      primary_key: true
+      not_null: true
+    - name: mape
+      type: REAL
+      not_null: true
+    - name: rolling_mape
+      type: REAL
+      not_null: true
+  anomalies_table_schema:
+    - name: Timestamps
+      type: TEXT
+      primary_key: true
+      not_null: true
+    - name: anomaly
+      type: REAL
+      not_null: true
