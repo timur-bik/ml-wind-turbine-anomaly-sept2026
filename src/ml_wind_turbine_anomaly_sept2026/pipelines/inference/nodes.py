@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Any
 import numpy as np
 from ml_wind_turbine_anomaly_sept2026.common.mlflow_utils import load_model_by_alias
-
+from app_data_manager.data_manager import DataManager
 
 def load_champion_model(mlflow_params: dict[str, Any]) -> Any:
     """
@@ -99,3 +99,44 @@ def detect_anomaly(df_error: pd.DataFrame, threshold: float, anomaly_error_type:
         "anomaly": (df_error[f"rolling_{anomaly_error_type}"] > threshold).astype(int)
     })
     return df_anomaly
+
+
+def save_predictions_to_db(
+    predictions: pd.DataFrame,
+    predictions_column_names: list[str],
+    db_table_name: str,
+    data_timestamps: pd.DataFrame,
+    data_manager_config: dict[str, Any],
+) -> None:
+    """
+    Save predictions to the SQLite database using DataManager.
+
+    Args:
+        predictions : pd.DataFrame containing predictions and timestamps
+        predictions_column_names: List of column names to save the predictions to
+        db_table_name: Name of the table to save the predictions to
+        data_timestamps: Data timestamps
+        data_manager_config: DataManager configuration dictionary to save the predictions to
+    """
+    # Initialize DataManager
+    data_manager = DataManager(data_manager_config)
+    # Convert input timestamps to pandas datetime
+    timestamps = pd.to_datetime(data_timestamps["Timestamps"])
+
+    # Normalize timestamps to string format expected by the database
+    # This works for both Series-like inputs and single Timestamp values
+    timestamps_str = timestamps.dt.strftime("%Y-%m-%d %H:%M:%S")
+    predictions['Timestamps'] = timestamps_str
+
+    # Create predictions DataFrame
+    predictions_df = pd.DataFrame(
+        {
+            "Timestamps": timestamps_str,
+            **{col: predictions[col].values.ravel() for col in predictions_column_names},
+        }
+    )
+    # Save to predictions table
+    data_manager.insert_data_to_db(
+        new_data=predictions_df.tail(1),
+        table_name=db_table_name
+    )

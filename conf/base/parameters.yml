@@ -78,6 +78,7 @@ feature_eng_pipeline:
 
 
 training_pipeline:
+  start_timestamp: '2007-07-29 03:10:00'
   test_fraction: 0.2
   n_folds: 3
   optuna_search:
@@ -120,10 +121,12 @@ mlflow:
 
 inference_pipeline:
   batch_size: 100
-  predictions_column_name: [predict_power]
   anomaly_error_type: mape
   rolling_window: 5
   anomaly_threshold: 8.5 # in percentage
+  predictions_column_name: [predict_power]
+  anomalies_column_name: [anomaly]
+  errors_column_names: [mape, rolling_mape]
 
 
 data_manager:
