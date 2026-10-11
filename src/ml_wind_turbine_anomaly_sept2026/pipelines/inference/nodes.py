@@ -137,6 +137,6 @@ def save_predictions_to_db(
     )
     # Save to predictions table
     data_manager.insert_data_to_db(
-        new_data=predictions_df.tail(1),
+        new_data=predictions_df,# .tail(1),
         table_name=db_table_name
     )
