@@ -124,9 +124,15 @@ inference_pipeline:
   anomaly_error_type: mape
   rolling_window: 5
   anomaly_threshold: 8.5 # in percentage
+  inference_frequency: 1  # seconds between checks for new data
   predictions_column_name: [predict_power]
   anomalies_column_name: [anomaly]
   errors_column_names: [mape, rolling_mape]
+
+
+monitoring_pipeline:
+  monitored_feature: "GenRPM"
+  wasserstein_threshold: 315
 
 
 data_manager:
@@ -139,6 +145,8 @@ data_manager:
   predictions_table_name: predictions
   errors_table_name: errors
   anomalies_table_name: anomalies
+  retraining_trigger_table_name: retraining_trigger # <-------
+  streaming_frequency: 2
 
   raw_data_table_schema:
     - name: Timestamps
@@ -196,4 +204,16 @@ data_manager:
       not_null: true
     - name: anomaly
       type: REAL
+      not_null: true
+
+  retraining_trigger_table_schema:
+    - name: Timestamps
+      type: TEXT
+      primary_key: true
+      not_null: true
+    - name: wasserstein_distance
+      type: REAL
+      not_null: true
+    - name: retraining_trigger
+      type: INTEGER
       not_null: true

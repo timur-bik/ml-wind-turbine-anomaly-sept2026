@@ -195,6 +195,10 @@ class DataManager:
     def init_anomalies_db_table(self) -> None:
         """Ensure anomalies table and timestamp index exist. See ``init_table_with_name``."""
         self.init_table_with_name("anomalies")
+    
+    def init_retraining_trigger_db_table(self) -> None:
+        """Ensure retraining trigger table and timestamp index exist. See ``init_table_with_name``."""
+        self.init_table_with_name("retraining_trigger")
 
     def insert_data_to_db(
         self,
