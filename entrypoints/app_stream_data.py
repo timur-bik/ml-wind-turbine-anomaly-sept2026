@@ -1,12 +1,15 @@
 import os
 import time
 from pathlib import Path
+
 import pandas as pd
+
 from app_data_manager.data_manager import DataManager
 from app_data_manager.utils import read_config
 
 project_root = Path(__file__).resolve().parents[1]
 os.chdir(project_root)
+
 
 def stream_data_to_db() -> None:
     """
@@ -48,9 +51,6 @@ def stream_data_to_db() -> None:
             if i < len(inference_data) - 1:  # Don't sleep after last row
                 time.sleep(config_data_manager["streaming_frequency"])
 
-            print(idx)
-            # print(data.iloc[-1])
 
-            
 if __name__ == "__main__":
     stream_data_to_db()

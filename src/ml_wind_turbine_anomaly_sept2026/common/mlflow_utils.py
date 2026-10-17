@@ -1,6 +1,7 @@
+from typing import Any
+
 import mlflow
 from mlflow.tracking import MlflowClient
-from typing import Any
 
 
 def load_model_by_alias(registered_model_name: str, alias: str) -> Any:

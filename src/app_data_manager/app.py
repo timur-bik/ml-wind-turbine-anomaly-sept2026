@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 
-import pandas as pd
 from data_manager import DataManager  # type: ignore
 from utils import read_config  # type: ignore
 
@@ -28,7 +27,7 @@ if __name__ == "__main__":
     # data_manager.insert_data_to_db(inference_data[:5], table_name="raw_data")
     # # print("Last 10 rows of raw data after insertion:", data_manager.get_last_n_points(10, "raw_data"))
     # data = data_manager.get_data_since_timestamp(
-    #     start_timestamp="2008-10-01 00:00:00", 
+    #     start_timestamp="2008-10-01 00:00:00",
     #     table_name="raw_data"
     #     )
     # # print(data[:5])
@@ -45,6 +44,5 @@ if __name__ == "__main__":
     # print(data_errors)
     # data_anomalies = data_manager.get_last_n_points(10, table_name="anomalies")
     # print(data_anomalies)
-   #  data_manager.init_retraining_trigger_db_table()
+    #  data_manager.init_retraining_trigger_db_table()
     data_trigger = data_manager.get_last_n_points(10, table_name="retraining_trigger")
-    print(data_trigger)

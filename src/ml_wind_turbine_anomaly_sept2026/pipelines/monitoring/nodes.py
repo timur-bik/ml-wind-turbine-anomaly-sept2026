@@ -1,13 +1,16 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
-from typing import Optional, Any
+
 from app_data_manager.data_manager import DataManager
+
 
 def get_wasserstein_distance_1d(
     reference_df: pd.DataFrame,
     monitored_df: pd.DataFrame,
     feature_col: str,
-    bins: Optional[int] = None,
+    bins: int | None = None,
 ) -> float:
     """
     Histogram-based approximation of 1D Wasserstein distance
@@ -25,7 +28,7 @@ def get_wasserstein_distance_1d(
         bin_edges = np.linspace(
             min(reference.min(), monitored.min()),
             max(reference.max(), monitored.max()),
-            bins + 1
+            bins + 1,
         )
 
     ref_hist, _ = np.histogram(reference, bins=bin_edges)
@@ -77,4 +80,6 @@ def save_retraining_trigger_to_db(
     # Initialize DataManager
     data_manager = DataManager(data_manager_config)
     # Save to retraining trigger table
-    data_manager.insert_data_to_db(new_data=retraining_trigger_df, table_name=db_table_name)
+    data_manager.insert_data_to_db(
+        new_data=retraining_trigger_df, table_name=db_table_name
+    )

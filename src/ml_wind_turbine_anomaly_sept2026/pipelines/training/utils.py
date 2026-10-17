@@ -1,15 +1,17 @@
-import optuna
-import numpy as np
-import pandas as pd
-from typing import Any
-import mlflow
+from typing import Any, Literal
+
 import joblib
-from ml_wind_turbine_anomaly_sept2026.common.metrics import compute_metrics
-from sklearn.ensemble import RandomForestRegressor as RF
+import numpy as np
+import optuna
+import pandas as pd
 from catboost import CatBoostRegressor
-from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor as RF
 from sklearn.model_selection import TimeSeriesSplit
-from typing import Literal
+from sklearn.preprocessing import StandardScaler
+
+import mlflow
+from ml_wind_turbine_anomaly_sept2026.common.metrics import compute_metrics
+
 
 def sample_optuna_params(
     model_params: dict[str, Any], trial: optuna.Trial
@@ -61,10 +63,10 @@ def sample_optuna_params(
 
 
 def objective(
-    trial: optuna.Trial, 
-    x_train: np.ndarray, 
-    y_train: np.ndarray,
-    params: dict[str, Any]
+    trial: optuna.Trial,
+    x_train: pd.DataFrame,
+    y_train: pd.Series,
+    params: dict[str, Any],
 ) -> float:
     """
     Optuna objective for CatBoost using eval_model and MLflow child runs.
@@ -90,7 +92,7 @@ def objective(
     return eval_results["cv_mape"]
 
 
-def eval_model(
+def eval_model(  # noqa: PLR0913
     x_train: pd.DataFrame,
     y_train: pd.Series,
     n_splits: int = 3,
@@ -184,6 +186,7 @@ def eval_model(
         "model": model,
         "x_scaler": x_scaler,
     }
+
 
 class MLModelWrapper(mlflow.pyfunc.PythonModel):
     """

@@ -10,7 +10,7 @@ sidebar_header = dbc.Row(
                     html.Span("Wind Turbine ML", style={"display": "block"}),
                     html.Span("Anomaly Platform", style={"display": "block"}),
                 ],
-                className="display-4", # class name links to .css file and its style in the file
+                className="display-4",  # class name links to .css file and its style in the file
             )
         ),
         dbc.Col(

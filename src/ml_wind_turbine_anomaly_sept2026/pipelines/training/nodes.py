@@ -1,18 +1,24 @@
-import pandas as pd
-from typing import Any
-import optuna
-import mlflow
 from datetime import datetime
 from pathlib import Path
-from mlflow.models.signature import infer_signature
+from typing import Any
+
 import joblib
-from mlflow.tracking import MlflowClient
-from sklearn.preprocessing import StandardScaler
+import optuna
+import pandas as pd
 from catboost import CatBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as RF
+from sklearn.preprocessing import StandardScaler
+
+import mlflow
 from ml_wind_turbine_anomaly_sept2026.common.metrics import compute_metrics
 from ml_wind_turbine_anomaly_sept2026.common.mlflow_utils import load_model_by_alias
-from ml_wind_turbine_anomaly_sept2026.pipelines.training.utils import eval_model, objective, MLModelWrapper
+from ml_wind_turbine_anomaly_sept2026.pipelines.training.utils import (
+    MLModelWrapper,
+    eval_model,
+    objective,
+)
+from mlflow.models.signature import infer_signature
+from mlflow.tracking import MlflowClient
 
 
 def train_test_split(
@@ -28,7 +34,6 @@ def train_test_split(
     y_train, y_test = target.iloc[:test_idx].copy(), target.iloc[test_idx:].copy()
 
     return x_train, y_train, x_test, y_test
-
 
 
 def tune_hyperparameters(
@@ -96,7 +101,7 @@ def tune_hyperparameters(
     }
 
 
-def fit_best_model(
+def fit_best_model(  # noqa: PLR0913
     x_train: pd.DataFrame,
     y_train: pd.Series,
     x_test: pd.DataFrame,
@@ -286,9 +291,9 @@ def register_model(model_uri: str, mlflow_params: dict[str, Any]) -> str:
 
     # 2) Add alias
     client.set_registered_model_alias(
-        name=registered_model_name, 
-        alias=mlflow_params["model_aliases"]["candidate"], 
-        version=version
+        name=registered_model_name,
+        alias=mlflow_params["model_aliases"]["candidate"],
+        version=version,
     )
     return version
 
@@ -298,7 +303,7 @@ def validate_challenger(
     y_test: pd.Series,
     training_results: dict[str, Any],
     mlflow_params: dict[str, Any],
-    model_version:str
+    model_version: str,
 ) -> None:
     """
     Validates candidate model against production and promote if better (lower MAPE).
@@ -330,7 +335,9 @@ def validate_challenger(
 
     # Load champion model and predict on current test set, compute MAPE
     try:
-        champion_model = load_model_by_alias(registered_model_name, alias=production_alias)
+        champion_model = load_model_by_alias(
+            registered_model_name, alias=production_alias
+        )
         y_pred = champion_model.predict(x_test)
         champion_mape = compute_metrics(y_test, y_pred)["mape"]
     except Exception:
@@ -347,7 +354,4 @@ def validate_challenger(
                 registered_model_name, candidate_alias
             ).version,
         )
-        client.delete_registered_model_alias(
-            registered_model_name, candidate_alias
-        )
-    return None
+        client.delete_registered_model_alias(registered_model_name, candidate_alias)

@@ -1,8 +1,8 @@
 import sqlite3 as sq
 import sys
 from pathlib import Path
-from typing import Any, Literal
 from time import time
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -59,7 +59,7 @@ class DataManager:
             except sq.DatabaseError as e:
                 last_error = e
                 if attempt < max_retries - 1:
-                    time.sleep(1)
+                    time.sleep(1) # type: ignore
         assert last_error is not None
         raise last_error from last_error
 
@@ -87,7 +87,6 @@ class DataManager:
             definitions.append(col_def)
         return ", ".join(definitions)
 
-    
     def init_raw_db_table(self) -> None:
         """
         Recreate the raw data table and load historical data from parquet file.
@@ -149,14 +148,14 @@ class DataManager:
 
         with self._get_connection() as conn:
             df = pd.read_sql_query(
-                f"SELECT * FROM {table_name} ORDER BY Timestamps DESC LIMIT ?", # ? is a placeholder for n
+                f"SELECT * FROM {table_name} ORDER BY Timestamps DESC LIMIT ?",  # ? is a placeholder for n
                 conn,
-                params=[n], # n is the number of points to retrieve
+                params=[n],  # n is the number of points to retrieve
             )
             return df.iloc[::-1].reset_index(drop=True)
 
     def init_table_with_name(
-        self, name: Literal["predictions", "errors", "anomalies"]
+        self, name: Literal["predictions", "errors", "anomalies", "retraining_trigger"]
     ) -> None:
         """
         Create the table for ``name`` and its timestamp index if they don't exist.
@@ -195,7 +194,7 @@ class DataManager:
     def init_anomalies_db_table(self) -> None:
         """Ensure anomalies table and timestamp index exist. See ``init_table_with_name``."""
         self.init_table_with_name("anomalies")
-    
+
     def init_retraining_trigger_db_table(self) -> None:
         """Ensure retraining trigger table and timestamp index exist. See ``init_table_with_name``."""
         self.init_table_with_name("retraining_trigger")
@@ -234,7 +233,9 @@ class DataManager:
 
         # Normalize timestamps to consistent format to prevent duplicates
         # Converts various formats (ISO, pandas Timestamp, etc.) to "YYYY-MM-DD HH:MM:SS"
-        df["Timestamps"] = pd.to_datetime(df["Timestamps"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+        df["Timestamps"] = pd.to_datetime(df["Timestamps"]).dt.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         # Extract column names for SQL statement construction
         cols = list(df.columns)
@@ -304,7 +305,7 @@ class DataManager:
                 conn,
                 params=[str(start_timestamp)],
             )
-    
+
     def get_data_by_timestamp_range(
         self,
         start_timestamp: str | pd.Timestamp,
