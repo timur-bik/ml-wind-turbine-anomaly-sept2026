@@ -3,13 +3,15 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+import mlflow
 import optuna
 import pandas as pd
 from catboost import CatBoostRegressor
+from mlflow.models.signature import infer_signature
+from mlflow.tracking import MlflowClient
 from sklearn.ensemble import RandomForestRegressor as RF
 from sklearn.preprocessing import StandardScaler
 
-import mlflow
 from ml_wind_turbine_anomaly_sept2026.common.metrics import compute_metrics
 from ml_wind_turbine_anomaly_sept2026.common.mlflow_utils import load_model_by_alias
 from ml_wind_turbine_anomaly_sept2026.pipelines.training.utils import (
@@ -17,8 +19,6 @@ from ml_wind_turbine_anomaly_sept2026.pipelines.training.utils import (
     eval_model,
     objective,
 )
-from mlflow.models.signature import infer_signature
-from mlflow.tracking import MlflowClient
 
 
 def train_test_split(
