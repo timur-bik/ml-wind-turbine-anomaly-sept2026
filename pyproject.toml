@@ -39,6 +39,8 @@ dependencies = [
   "pytest-cov>=6.3.0",
   "ruff>=0.12.12",
   "ty>=0.0.89",
+  "pre-commit>=4.7.0",
+  "nbstripout>=0.9.1",
 ]
 
 [project.scripts]

@@ -49,7 +49,7 @@ def predict(
         Predicted target values for the input features.
     """
     predictions = champion_model.predict(features_data)
-    return pd.DataFrame(predictions, columns=predictions_column_name) # type: ignore
+    return pd.DataFrame(predictions, columns=predictions_column_name)  # type: ignore
 
 
 def compute_model_errors(
@@ -74,7 +74,7 @@ def compute_model_errors(
     if anomaly_error_type == "mape":
         error = np.abs(y_true - y_pred) / (y_true + 1e-8) * 100
         error_column_name = "mape"
-    return pd.DataFrame(error, columns=[error_column_name]) # type: ignore
+    return pd.DataFrame(error, columns=[error_column_name])  # type: ignore
 
 
 def compute_rolling_error(df_error: pd.DataFrame, rolling_window: int) -> pd.DataFrame:

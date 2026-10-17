@@ -59,7 +59,7 @@ class DataManager:
             except sq.DatabaseError as e:
                 last_error = e
                 if attempt < max_retries - 1:
-                    time.sleep(1) # type: ignore
+                    time.sleep(1)  # type: ignore
         assert last_error is not None
         raise last_error from last_error
 
