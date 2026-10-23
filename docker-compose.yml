@@ -7,7 +7,7 @@ services:
     #   context: .
     #   dockerfile: Dockerfile
     # image: turbine-anomaly-detector:latest 
-    image: ${DOCKERHUB_USERNAME}/turbine-anomaly:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command: ["python", "entrypoints/app_stream_data.py"]
     volumes:
       - ./data:/app/data
@@ -18,7 +18,7 @@ services:
 
   mlflow_server:
     # image: turbine-anomaly-detector:latest
-    image: ${DOCKERHUB_USERNAME}/turbine-anomaly:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command:
       - mlflow
       - server
@@ -44,7 +44,7 @@ services:
 
   app-ml-train:
     # image: turbine-anomaly-detector:latest
-    image: ${DOCKERHUB_USERNAME}/turbine-anomaly:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command: ["python", "entrypoints/training.py"]
     volumes:
       - ./mlflow_docker:/app/mlflow
@@ -58,7 +58,7 @@ services:
 
   app-ml-inference:
     # image: turbine-anomaly-detector:latest
-    image: ${DOCKERHUB_USERNAME}/turbine-anomaly:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command: ["python", "entrypoints/inference_real_time.py"]
     volumes:
       - ./mlflow_docker:/app/mlflow
@@ -72,7 +72,7 @@ services:
 
   app-ui:
     # image: turbine-anomaly-detector:latest
-    image: ${DOCKERHUB_USERNAME}/turbine-anomaly:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command: ["python", "entrypoints/app_ui.py"]  # Run the Dash UI app
     ports:
       - "8050:8050"                 # Expose port 8050 for web access
@@ -92,7 +92,7 @@ services:
 
   kedro-viz:
     # image: turbine-anomaly-detector:latest
-    image: ${DOCKERHUB_USERNAME}/turbine-anomaly:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command: ["kedro", "viz", "run", "--host", "0.0.0.0", "--port", "4141"]
     ports:
       - "4141:4141"                 # Expose port 4141 for Kedro Viz UI
