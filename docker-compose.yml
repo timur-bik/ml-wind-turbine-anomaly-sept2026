@@ -110,6 +110,7 @@ services:
 
   app-ml-monitoring:
     # image: turbine-anomaly-detector:latest
+    image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
     command: ["python", "entrypoints/prefect/monitoring.py"]
     restart: unless-stopped
     volumes:
