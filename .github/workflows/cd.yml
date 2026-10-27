@@ -49,8 +49,7 @@ jobs:
             set -e
             cd ml-wind-turbine-anomaly-sept2026
 
-            git fetch origin main
-            git reset --hard origin/main
+            git pull origin main
             
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             export KEDRO_VIZ_URI=http://${{ secrets.DO_HOST }}:4141
