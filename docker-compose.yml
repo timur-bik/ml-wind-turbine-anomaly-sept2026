@@ -42,16 +42,53 @@ services:
       - ./data:/app/data
       - ./conf:/app/conf
 
+  prefect-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: prefect
+      POSTGRES_DB: prefect
+    volumes:
+      - prefect_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect -d prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@prefect-db:5432/prefect
+      PREFECT_API_URL: ${PREFECT_API_URL}
+      PREFECT_UI_API_URL: ${PREFECT_UI_API_URL}
+      PREFECT_UI_URL: ${PREFECT_UI_URL}
+    depends_on:
+      prefect-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:4200/api/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
   app-ml-train:
     # image: turbine-anomaly-detector:latest
     image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
-    command: ["python", "entrypoints/training.py"]
+    command: ["python", "entrypoints/prefect/training.py"]
     volumes:
       - ./mlflow_docker:/app/mlflow
       - ./data:/app/data
       - ./conf:/app/conf
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow_server:8080
+      - PREFECT_API_URL=http://prefect-server:4200/api 
     depends_on:
       - mlflow_server
       - app-stream-data
@@ -59,16 +96,36 @@ services:
   app-ml-inference:
     # image: turbine-anomaly-detector:latest
     image: ${DOCKERHUB_USERNAME}/turbine-anomaly-detector:latest
-    command: ["python", "entrypoints/inference_real_time.py"]
+    command: ["python", "entrypoints/prefect/inference.py"]
     volumes:
       - ./mlflow_docker:/app/mlflow
       - ./data:/app/data
       - ./conf:/app/conf
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow_server:8080
+      - PREFECT_API_URL=http://prefect-server:4200/api 
     depends_on:
       app-ml-train:
         condition: service_completed_successfully
+
+  app-ml-monitoring:
+    # image: turbine-anomaly-detector:latest
+    command: ["python", "entrypoints/prefect/monitoring.py"]
+    restart: unless-stopped
+    volumes:
+      - ./mlflow_docker:/app/mlflow
+      - ./data:/app/data
+      - ./conf:/app/conf
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow_server:8080
+      - PREFECT_API_URL=http://prefect-server:4200/api 
+    depends_on:
+      app-ml-train:
+        condition: service_started
+      mlflow_server:
+        condition: service_started
+      prefect-server:
+        condition: service_healthy
 
   app-ui:
     # image: turbine-anomaly-detector:latest
@@ -96,3 +153,6 @@ services:
     command: ["kedro", "viz", "run", "--host", "0.0.0.0", "--port", "4141"]
     ports:
       - "4141:4141"                 # Expose port 4141 for Kedro Viz UI
+
+volumes:
+  prefect_db_data:

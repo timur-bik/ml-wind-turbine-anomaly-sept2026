@@ -81,7 +81,7 @@ training_pipeline:
   start_timestamp: '2007-07-29 03:10:00'
   test_fraction: 0.2
   n_folds: 3
-  train_check_frequency: 10
+  train_check_frequency: 20
   optuna_search:
       model: 'CatBoost'
       n_trials: 5
@@ -125,7 +125,7 @@ inference_pipeline:
   anomaly_error_type: mape
   rolling_window: 5
   anomaly_threshold: 8.5 # in percentage
-  inference_frequency: 10  # seconds between checks for new data
+  inference_frequency: 20  # seconds between checks for new data
   predictions_column_name: [predict_power]
   anomalies_column_name: [anomaly]
   errors_column_names: [mape, rolling_mape]
@@ -134,7 +134,7 @@ inference_pipeline:
 monitoring_pipeline:
   monitored_feature: "GenRPM"
   wasserstein_threshold: 315
-  monitoring_frequency: 1
+  monitoring_frequency: 30
 
 
 data_manager:
@@ -148,7 +148,7 @@ data_manager:
   errors_table_name: errors
   anomalies_table_name: anomalies
   retraining_trigger_table_name: retraining_trigger # <-------
-  streaming_frequency: 2
+  streaming_frequency: 30
 
   raw_data_table_schema:
     - name: Timestamps
