@@ -90,8 +90,12 @@ services:
       - MLFLOW_TRACKING_URI=http://mlflow_server:8080
       - PREFECT_API_URL=http://prefect-server:4200/api 
     depends_on:
-      - mlflow_server
-      - app-stream-data
+      mlflow_server:
+        condition: service_started
+      app-stream-data:
+        condition: service_started
+      prefect-server:
+        condition: service_healthy
 
   app-ml-inference:
     # image: turbine-anomaly-detector:latest
@@ -106,7 +110,9 @@ services:
       - PREFECT_API_URL=http://prefect-server:4200/api 
     depends_on:
       app-ml-train:
-        condition: service_completed_successfully
+        condition: service_started
+      prefect-server:
+        condition: service_healthy
 
   app-ml-monitoring:
     # image: turbine-anomaly-detector:latest
